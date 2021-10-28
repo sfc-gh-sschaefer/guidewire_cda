@@ -25,19 +25,19 @@
 - Follow the [steps to create a storage integration to access your s3 bucket](https://docs.snowflake.com/en/user-guide/data-load-s3-config-storage-integration.html)
 
 #### 2. One-Time Setup
-- Update all parameters in `/demo scripts/0 - OneTime Setup.sql` with values appropriate for your setup.
-- In your snowflake account, as a user with accountadmin, run `0 - OneTime Setup.sql`
+- Update all parameters in `/demo scripts/0 - Setup-Reset.sql` with values appropriate for your setup.
+- In your snowflake account, as a user with accountadmin, run `0 - Setup-Reset.sql`
 
 #### 3. Test Demo Scripts
 - Before getting into the demo flow, check that scripts 1 through 4 (in order) execute without error in your snowflake account
-- Re-run `0 - OneTime Setup.sql`
+- Once scripts 1 through 4 have completed successfully, Re-run `0 - OneTime Setup.sql`
 
 #### 4. Build Out SnowSight Dashboards (Optional)
 - Leveraging an existing pre-configured account, copy the dashboard queries, chart configurations and dashboard layout. For now this is a manual process. There is no way to share or export/import dashboards.
 
 ***
 ### Demo Delivery
-[Example Demo Deck](https://docs.google.com/presentation/d/1-X2UIOEPBksAYBxs7McxbkyOj9U2VxxWt4z5_e-x3ns/edit?usp=sharing)
+[Example Demo Deck](https://docs.google.com/presentation/d/1pFirdeOkxP_hfCMvueflLGOqQ1IC42-jQcSPdNbeXuA/edit?usp=sharing)
 
 #### 1 - Bulk Historical Load
 1. Show the initial historical data in s3 using the AWS Console
