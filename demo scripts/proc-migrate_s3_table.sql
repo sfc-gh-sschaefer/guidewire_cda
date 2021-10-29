@@ -1,4 +1,7 @@
 /* ==========       CREATE THE Migrate s3 Table Stored Proc    ========= */
+USE ROLE GUIDEWIRE_ADMIN;
+USE WAREHOUSE GW_CDA_LOAD_WH;
+
 create or replace procedure guidewire_cda.public.migrate_s3_table(source_stage STRING, source_prefix STRING, source_file_format STRING, target_db STRING,target_schema STRING, target_table STRING)
   returns string
   language javascript

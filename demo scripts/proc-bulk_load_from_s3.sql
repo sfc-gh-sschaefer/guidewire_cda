@@ -1,4 +1,7 @@
   /* ==========       CREATE THE Bulk Load Stored Proc    ========= */
+USE ROLE GUIDEWIRE_ADMIN;
+USE WAREHOUSE GW_CDA_LOAD_WH;
+
   create or replace procedure guidewire_cda.public.bulk_load_from_s3(source_stage STRING, source_prefix STRING, source_file_format STRING, target_db STRING,target_schema STRING, target_table STRING)
   returns string
   language javascript
@@ -53,6 +56,7 @@
     insert_command = insert_command+" FROM @"+stage+"/"+prefix+" (file_format => 'guidewire_cda.public.file_format_parquet_default',pattern => '.*.parquet')";
     insert_statement = snowflake.createStatement( {sqlText: insert_command} );
     insert_statement.execute();
+    return insert_command;
 
 //Return a moderately helpful message
   if(insert_command){
