@@ -29,12 +29,14 @@ CREATE OR REPLACE FILE FORMAT GUIDEWIRE_CDA.PUBLIC.FILE_FORMAT_PARQUET_DEFAULT
 show storage integrations;
 
 -- 1. STORAGE INTEGRATION: Defines a bucket and Credentials to use
+
+-- REPLACE THIS INTEGRATION NAME WITH ONE YOU HAVE CREATED
 DESC INTEGRATION USWEST2_S3_INTEGRATION;
 
 -- 2. EXTERNAL STAGE: Defines a location we can access in s3
 CREATE OR REPLACE STAGE GUIDEWIRE_CDA.LANDING.s3_extstg_guidewire
-    storage_integration = uswest2_s3_integration
-    url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/'
+    storage_integration = uswest2_s3_integration -- REPLACE THIS INTEGRATION NAME WITH ONE YOU HAVE CREATED
+    url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/' -- REPLACE THE BUCKET NAME WITH ONE FROM YOUR STORAGE INTEGRATION
     file_format = (type = parquet);
     
 rm @GUIDEWIRE_CDA.LANDING.s3_extstg_guidewire/bc_chargept_nm_l10n/4fdc0fa344f7452a8a82f05b5c7cab27/1612480304263/;

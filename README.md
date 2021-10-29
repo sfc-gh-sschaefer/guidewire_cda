@@ -24,13 +24,13 @@
 - Drop the data from '/data/0 - historical load/' into s3
 - Follow the [steps to create a storage integration to access your s3 bucket](https://docs.snowflake.com/en/user-guide/data-load-s3-config-storage-integration.html)
 
-#### 2. One-Time Setup
+#### 2. Setup / Reset
 - Update all parameters in `/demo scripts/0 - Setup-Reset.sql` with values appropriate for your setup.
-- In your snowflake account, as a user with accountadmin, run `0 - Setup-Reset.sql`
+- In your snowflake account, as a user with the accountadmin role, run `0 - Setup-Reset.sql`, `bulk_load_from_s3.sql`, and `migrate_s3_table_proc.sql`
 
 #### 3. Test Demo Scripts
-- Before getting into the demo flow, check that scripts 1 through 4 (in order) execute without error in your snowflake account
-- Once scripts 1 through 4 have completed successfully, Re-run `0 - OneTime Setup.sql`
+- Run scripts 1 through 4 (in order) on your snowflake account to make sure they complete without error
+- Once scripts 1 through 4 have completed successfully, Re-run `0 - OneTime Setup.sql` and the two stored procedure scripts.
 
 #### 4. Build Out SnowSight Dashboards (Optional)
 - Leveraging an existing pre-configured account, copy the dashboard queries, chart configurations and dashboard layout. For now this is a manual process. There is no way to share or export/import dashboards.
@@ -48,7 +48,7 @@
 3. Return to snowflake and explain the SYSTEM$PIPE_STATUS function, which running it and highlighting changes in 'pendingFileCount'
 4. Once pendingFileCount returns to 0, run a select * and show that the rows have doubled, where half of them now have 'LOAD_TYPE'='INCREMENTAL'
 #### 3 - Schema Change
-1. Explain that schema changes are not automatic, but as long as GW notifies ahead of time, it takes only two commands (ALTER TABLE ADD COLUMN and REPLACE PIPE).
+1. Schema changes are not automatic, but as long as GW notifies ahead of time, it takes only two commands (ALTER TABLE ADD COLUMN and REPLACE PIPE).
 > This is because GW uses a non-destructive, additive-only approach. The two commands can be run any time ahead of the impending schema change.
 2. Step through the Schema Change script up to and including the CREATE OR REPLACE PIPE statement.
 3. Explain that the pipe and table are now ready whenever the schema change actually takes place.
