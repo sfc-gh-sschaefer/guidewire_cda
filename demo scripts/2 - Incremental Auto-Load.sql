@@ -5,13 +5,12 @@ USE WAREHOUSE GW_CDA_LOAD_WH;
 -- CREATE A PIPE... A SIMPLE COPY STATEMENT TO SELECT FROM THE STAGE AND INSERT INTO TARGET TABLE
     CREATE OR REPLACE PIPE GUIDEWIRE_CDA.LANDING.bc_chargept_nm_l10n
     AUTO_INGEST=TRUE 
+    AWS_SNS_TOPIC = 'arn:aws:sns:us-west-2:484577546576:sfc-mwies-bc_chargept_nm_l10n'
     AS
       copy into "GUIDEWIRE_CDA"."RAW"."BC_CHARGEPT_NM_L10N"
       from (
       SELECT 
-            CURRENT_TIMESTAMP::TIMESTAMP               AS load_ts
-            ,'INCREMENTAL'                             AS load_type
-            ,$1:beanversion::NUMBER                    AS beanversion 
+            $1:beanversion::NUMBER                    AS beanversion 
             ,$1:gwcbi___connector_ts_ms::NUMBER        AS gwcbi___connector_ts_ms
             ,$1:gwcbi___lsn::NUMBER                    AS gwcbi___lsn
             ,$1:gwcbi___operation::NUMBER              AS gwcbi___operation
@@ -34,12 +33,8 @@ USE WAREHOUSE GW_CDA_LOAD_WH;
     DESCRIBE PIPE GUIDEWIRE_CDA.LANDING.BC_CHARGEPT_NM_L10N;
 
     -- 
-    
     SELECT SYSTEM$PIPE_STATUS( 'GUIDEWIRE_CDA.LANDING.bc_chargept_nm_l10n' );
     SELECT * FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N;
-
-
-
 
 
 /* ===========================================================
@@ -47,13 +42,12 @@ USE WAREHOUSE GW_CDA_LOAD_WH;
     -- CREATE A PIPE... A SIMPLE COPY STATEMENT TO SELECT FROM THE STAGE AND INSERT INTO TARGET TABLE
     CREATE OR REPLACE PIPE GUIDEWIRE_CDA.LANDING.TACCOUNTPATTERN
     AUTO_INGEST=TRUE 
+    AWS_SNS_TOPIC = 'arn:aws:sns:us-west-2:484577546576:sfc-mwies-taccountpattern'
     AS
       copy into "GUIDEWIRE_CDA"."RAW"."BC_TACCOUNTPATTERN"
       from (
       SELECT 
-            CURRENT_TIMESTAMP::TIMESTAMP               AS load_ts
-            ,'HISTORIC'
-            ,$1:beanversion::NUMBER                    AS beanversion 
+             $1:beanversion::NUMBER                    AS beanversion 
             ,$1:chargepatternid::INTEGER               AS chargepatternid
             ,$1:createtime::TIMESTAMP                  AS createtime
             ,$1:createuserid::INTEGER                  AS createuserid
@@ -79,5 +73,10 @@ USE WAREHOUSE GW_CDA_LOAD_WH;
           PATTERN => '.*.parquet'
           )
       );
--- GET notification_channel (I.e. SQS ARN)
-DESCRIBE PIPE GUIDEWIRE_CDA.LANDING.TACCOUNTPATTERN;
+-- Show pipes to get the ARN for the s3 notifications
+---- Use the "notification_channel" SQS ARN to set up an s3 Event Notification (may require guidewire admin)
+    DESCRIBE PIPE GUIDEWIRE_CDA.LANDING.TACCOUNTPATTERN;
+
+-- 
+SELECT SYSTEM$PIPE_STATUS( 'GUIDEWIRE_CDA.LANDING.TACCOUNTPATTERN' );
+SELECT * FROM GUIDEWIRE_CDA.RAW.BC_TACCOUNTPATTERN;
