@@ -1,5 +1,5 @@
-/* ==========       CREATE THE External Table Creation Proc    ========= */
-create or replace procedure guidewire_cda.public.et_from_s3(source_stage STRING, source_prefix STRING, source_file_format STRING, target_db STRING,target_schema STRING, target_table STRING)
+/* ==========       CREATE THE Migrate s3 Table Stored Proc    ========= */
+create or replace procedure guidewire_cda.public.migrate_s3_table(source_stage STRING, source_prefix STRING, source_file_format STRING, target_db STRING,target_schema STRING, target_table STRING)
   returns string
   language javascript
   as     
@@ -102,19 +102,4 @@ create or replace procedure guidewire_cda.public.et_from_s3(source_stage STRING,
     return fqtn+" -- No new columns to add."
   }
   $$
-  ; 
-
-/* Example Usage 
---  Creates a table called TEST_TABLE in the schema COMMON.PUBLIC
---  The schema for this table is inferred from parquet data in an s3 stage called GUIDEWIRE_CDA.LANDING.S3_EXTSTG_GUIDEWIRE.
---  In this stage, the data is under a prefix (folder) 'bc_chargept_nm_l10n' in parquet format
---  All parquet files have the '.parquet' suffix
-show stages;
-show file formats;
-
-call guidewire_cda.public.et_from_s3('GUIDEWIRE_CDA.LANDING.s3_extstg_guidewire','guidewire_cda/bc_chargept_nm_l10n/','Parquet','GUIDEWIRE_CDA','RAW','BC_CHARGEPT_NM_L10N');
-
-DROP TABLE COMMON.PUBLIC.TEST_TABLE;
-ALTER TABLE COMMON.PUBLIC.TEST_TABLE ADD COLUMN NEW_COLUMN_2 VARCHAR;
-
-*/
+  ;
