@@ -5,6 +5,8 @@
 
 ## Purpose
 - **To Demonstrate a best practice method to ingest data from GuideWire CDA**
+- **This Demo Repo does not use an actual GW CDA data source**
+- A dummy GW CDA source is created as part of this demo
 
 ## How to Use This Repo
 
@@ -14,6 +16,7 @@
 1. **A Snowflake account with accountadmin access**
 2. **Access to an AWS Account**
 > - Including permission to create buckets and IAM Users
+> - *This assumes you are not using an actual GW CDA source
 
 ***
 ### Getting Started
