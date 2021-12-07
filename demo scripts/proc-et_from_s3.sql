@@ -58,7 +58,8 @@ var create_et = create_et_statement.execute();
 
 // Create the statement to create the structured external table
 create_table_command = "create or replace external table "+fqtn+"_et(";
-create_table_command += col_expressions_no_value.toUpperCase()+'\n';
+create_table_command += col_expressions_no_value.replace(/['"]+/g, '');
++'\n';
 create_table_command +=") LOCATION = @GUIDEWIRE_CDA.LANDING.s3_extstg_guidewire/bc_chargept_nm_l10n/  \
                                                 REFRESH_ON_CREATE =  TRUE \
                                                 AUTO_REFRESH = TRUE \
