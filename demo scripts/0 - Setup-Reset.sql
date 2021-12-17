@@ -46,13 +46,29 @@ DESC INTEGRATION USWEST2_S3_INTEGRATION;
 -- 2. EXTERNAL STAGE: Defines a location we can access in s3
 ---- Stages are created at the table level to improve performance compared to a single stage for all tables
 CREATE OR REPLACE STAGE GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg
-    storage_integration = uswest2_s3_integration -- REPLACE THIS INTEGRATION NAME WITH ONE YOU HAVE CREATED
-    url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/bc_chargept_nm_l10n/' -- REPLACE THE BUCKET NAME WITH ONE FROM YOUR STORAGE INTEGRATION
-    file_format = (type = parquet);
+    url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/bc_chargept_nm_l10n/' -- REPLACE THIS LOCATION
+    credentials = (AWS_KEY_ID = '<AWS ACCESS KEY ID>' AWS_SECRET_KEY = '<AWS SECRET ACCESS KEY>')
+    directory = (
+      enable = true
+      auto_refresh = true
+      aws_sns_topic = 'arn:aws:sns:us-west-2:484577546576:sfc-mwies-bc_chargept_nm_l10n'
+    )
+    file_format = ( TYPE = PARQUET)
+;
+ALTER STAGE GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg REFRESH;
+SELECT * FROM DIRECTORY( @GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg );
+
 CREATE OR REPLACE STAGE GUIDEWIRE_CDA.RAW.gw_bc_taccountpattern_extstg
-    storage_integration = uswest2_s3_integration -- REPLACE THIS INTEGRATION NAME WITH ONE YOU HAVE CREATED
-    url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/bc_taccountpattern/' -- REPLACE THE BUCKET NAME WITH ONE FROM YOUR STORAGE INTEGRATION
+    url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/bc_taccountpattern/' -- REPLACE THIS LOCATION
+    credentials = (AWS_KEY_ID = '<AWS ACCESS KEY ID>' AWS_SECRET_KEY = '<AWS SECRET ACCESS KEY>')
+    directory = (
+      enable = true
+      auto_refresh = true
+      aws_sns_topic = 'arn:aws:sns:us-west-2:484577546576:sfc-mwies-taccountpattern'
+    )
     file_format = (type = parquet);
+ALTER STAGE GUIDEWIRE_CDA.RAW.gw_bc_taccountpattern_extstg REFRESH;
+SELECT * FROM DIRECTORY( @GUIDEWIRE_CDA.RAW.gw_bc_taccountpattern_extstg );
 
 -- THESE LINES OF CODE SIMPLY REMOVE DATA WHICH MAY BE CREATED IN A LATER SCRIPT
 rm @GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg/4fdc0fa344f7452a8a82f05b5c7cab27/1612480304263/;
