@@ -7,9 +7,19 @@ create or replace stream GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM on table G
 
 show streams in GUIDEWIRE_CDA.RAW;
 
--- the streams will keep track of changes (inserts) to the landing table
-select count(*) from GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM;
--- select * from GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM limit 100;
+-- Streams will keep track of changes (inserts) to the landing table
+select * from GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM;
+
+-- Sythesize a row landing in the table
+insert into GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N
+    SELECT TOP 1
+        BEANVERSION,GWCBI___CONNECTOR_TS_MS,GWCBI___LSN, GWCBI___OPERATION, GWCBI___PAYLOAD_TS_MS, GWCBI___SEQVAL_HEX, GWCBI___TX_ID,
+        ID, LANGUAGE, OWNER, PUBLICID, VALUE,
+        888
+    FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N;
+    
+-- Note that the row is now available in the stream with three metadata (i.e. CDC) fields. These will not be used as Guidewire provides CDC fields in the payload
+select * from GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM;
 
 /*--------------------------------------------------------------------------------
   Tasks allow us to define and orchestrate the ELT logic. We consume the records
@@ -17,12 +27,12 @@ select count(*) from GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM;
   resets the stream so we can capture changes going forward from here.
 --------------------------------------------------------------------------------*/
 
--- create a warehouse to run tasks
+-- create a warehouse to run tasks. Serverless tasks may also be explored depending on the load
 create warehouse if not exists gw_cda_task_wh auto_suspend = 30 initially_suspended = true;
 
 -- create a 'modelled' enterprise table which removes CDC complexity for most consumers
-CREATE OR REPLACE TABLE GUIDEWIRE_CDA.ENTERPRISE.BC_CHARGEPT_NM_L10N (
-    LOAD_TS             TIMESTAMP
+CREATE OR REPLACE TABLE GUIDEWIRE_CDA.STAGING.BC_CHARGEPT_NM_L10N (
+    GWCBI___PAYLOAD_TS_MS             NUMBER
     ,ID                 NUMBER
     ,LANGUAGE           STRING
     ,OWNER              STRING
@@ -32,44 +42,47 @@ CREATE OR REPLACE TABLE GUIDEWIRE_CDA.ENTERPRISE.BC_CHARGEPT_NM_L10N (
     
     
 /*--------------------------------------------------------------------------------
-  ======                  RUN INITIAL ENTERPRISE LOAD                  =========
+  ======                  RUN INITIAL STAGING LOAD                  =========
 --------------------------------------------------------------------------------*/
 
 -- This select statement uses an ad-hoc filter which uses the GWCBI___OPERATION field
 ---- to filter in just the INSERTED records (assume 2 = insert, 3 = delete)
 ---- It selects only the columns relevant to users who don't care about CDC
 ---- It also needs to be corrected to handle deletes properly.
-INSERT INTO GUIDEWIRE_CDA.ENTERPRISE.BC_CHARGEPT_NM_L10N
+INSERT INTO GUIDEWIRE_CDA.STAGING.BC_CHARGEPT_NM_L10N
   SELECT * FROM(
     WITH LATEST_INSERTS AS (
-      SELECT MAX(LOAD_TS) AS LOAD_TS,ID
+      SELECT MAX(GWCBI___PAYLOAD_TS_MS) AS GWCBI___PAYLOAD_TS_MS,ID
       FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N
       WHERE GWCBI___OPERATION=2
       GROUP BY ID
       ), LATEST_DELETES AS (
-      SELECT MAX(LOAD_TS) AS LOAD_TS,ID
+      SELECT MAX(GWCBI___PAYLOAD_TS_MS) AS GWCBI___PAYLOAD_TS_MS,ID
       FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N
       WHERE GWCBI___OPERATION=3
       GROUP BY ID
     ), ALL_TX AS (
     SELECT 
-      LOAD_TS
+      GWCBI___PAYLOAD_TS_MS
       ,ID
       ,LANGUAGE
       ,OWNER
       ,PUBLICID
       ,VALUE
       ,NEW_COLUMN
-    FROM "GUIDEWIRE_CDA"."RAW"."BC_CHARGEPT_NM_L10N"
+    FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM
     )
-    SELECT DISTINCT ALL_TX.LOAD_TS,ALL_TX.ID,ALL_TX.LANGUAGE,ALL_TX.OWNER,ALL_TX.PUBLICID,ALL_TX.VALUE,ALL_TX.NEW_COLUMN
-    FROM ALL_TX JOIN LATEST_INSERTS ON ALL_TX.ID=LATEST_INSERTS.ID AND ALL_TX.LOAD_TS=LATEST_INSERTS.LOAD_TS
-    LEFT JOIN LATEST_DELETES ON ALL_TX.ID=LATEST_DELETES.ID AND LATEST_DELETES.LOAD_TS > LATEST_INSERTS.LOAD_TS
+    SELECT DISTINCT ALL_TX.GWCBI___PAYLOAD_TS_MS,ALL_TX.ID,ALL_TX.LANGUAGE,ALL_TX.OWNER,ALL_TX.PUBLICID,ALL_TX.VALUE,ALL_TX.NEW_COLUMN
+    FROM ALL_TX JOIN LATEST_INSERTS ON ALL_TX.ID=LATEST_INSERTS.ID AND ALL_TX.GWCBI___PAYLOAD_TS_MS=LATEST_INSERTS.GWCBI___PAYLOAD_TS_MS
+    LEFT JOIN LATEST_DELETES ON ALL_TX.ID=LATEST_DELETES.ID AND LATEST_DELETES.GWCBI___PAYLOAD_TS_MS > LATEST_INSERTS.GWCBI___PAYLOAD_TS_MS
   )
   ;
 
+-- Note the stream is now empty because we ran an INSERT INTO... SELECT off of it
+select * from GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM;
+
 -- Preview the data
-select * From GUIDEWIRE_CDA.ENTERPRISE.BC_CHARGEPT_NM_L10N;
+select * From GUIDEWIRE_CDA.STAGING.BC_CHARGEPT_NM_L10N;
 
 -- Create task to push transactions data into final transactions table
 -- This tasks uses Snowflake's native MERGE function to handle upserting and deletes.
@@ -78,13 +91,13 @@ create or replace task GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_LOAD_TASK
   schedule = '1 minute'
   when system$stream_has_data('GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM')
   as
-  merge into GUIDEWIRE_CDA.ENTERPRISE.BC_CHARGEPT_NM_L10N TARGET
-  using (SELECT GWCBI___OPERATION,LOAD_TS,ID,LANGUAGE,OWNER,PUBLICID,VALUE,NEW_COLUMN FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM) SOURCE
+  merge into GUIDEWIRE_CDA.STAGING.BC_CHARGEPT_NM_L10N TARGET
+  using (SELECT GWCBI___OPERATION,GWCBI___PAYLOAD_TS_MS,ID,LANGUAGE,OWNER,PUBLICID,VALUE,NEW_COLUMN FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM) SOURCE
   on SOURCE.ID=TARGET.ID
   WHEN MATCHED 
     AND SOURCE.GWCBI___OPERATION=2 
   THEN UPDATE SET
-    TARGET.LOAD_TS=SOURCE.LOAD_TS,
+    TARGET.GWCBI___PAYLOAD_TS_MS=SOURCE.GWCBI___PAYLOAD_TS_MS,
     TARGET.LANGUAGE=SOURCE.LANGUAGE,
     TARGET.OWNER=SOURCE.OWNER,
     TARGET.PUBLICID=SOURCE.PUBLICID,
@@ -94,7 +107,7 @@ create or replace task GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_LOAD_TASK
     AND SOURCE.GWCBI___OPERATION=3
   THEN DELETE
   WHEN NOT MATCHED
-    THEN INSERT VALUES(SOURCE.LOAD_TS,SOURCE.ID,SOURCE.LANGUAGE,SOURCE.OWNER,SOURCE.PUBLICID,SOURCE.VALUE,SOURCE.NEW_COLUMN);
+    THEN INSERT VALUES(SOURCE.GWCBI___PAYLOAD_TS_MS,SOURCE.ID,SOURCE.LANGUAGE,SOURCE.OWNER,SOURCE.PUBLICID,SOURCE.VALUE,SOURCE.NEW_COLUMN);
 
  
 /*********************************************************************
@@ -110,7 +123,7 @@ show tasks in GUIDEWIRE_CDA.RAW;
  SIMULATE A NEW FINGERPRINT BEING ADDED WITH A SCHEMA THAT INCLUDES '888' IN THE NEW COLUMN
 *********************************************************************/
 
-COPY INTO @GUIDEWIRE_CDA.LANDING.s3_extstg_guidewire/bc_chargept_nm_l10n/4fdc0fa344f7452a8a82f05b5c7cab28/2612480304265/ADDED_COLUMN_
+COPY INTO @GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg/4fdc0fa344f7452a8a82f05b5c7cab29/2612480304265/ADDED_COLUMN_
 FROM (
     -- Double-quotes maintain case, otherwise columns are upper-case
     SELECT DISTINCT
@@ -126,9 +139,8 @@ FROM (
         ,owner AS "owner"
         ,publicid AS "publicid"
         ,VALUE AS "value" 
-        ,888 AS "new_column"
+        ,777 AS "new_column"
     FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N
-    WHERE ID>200
 )
 HEADER = TRUE 
 OVERWRITE = TRUE;
@@ -139,23 +151,23 @@ OVERWRITE = TRUE;
 *********************************************************************/
 
 -- SEE THE NEW DATA BEING QUEUED UP INTO THE PIPE
-SELECT SYSTEM$PIPE_STATUS( 'GUIDEWIRE_CDA.LANDING.bc_chargept_nm_l10n' );
+SELECT SYSTEM$PIPE_STATUS( 'GUIDEWIRE_CDA.RAW.bc_chargept_nm_l10n' );
 
 select count(*) from GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N_STREAM;
 
 -- how long to next task run?
 select timestampdiff(second, current_timestamp, scheduled_time) next_run, scheduled_time, name, state
-  from table(information_schema.task_history())
+  from table(guidewire_cda.information_schema.task_history())
   where state = 'SCHEDULED' order by completed_time desc;
   
 -- task run history
-select * from table(information_schema.task_history())
+select * from table(guidewire_cda.information_schema.task_history())
   where scheduled_time > dateadd(minute, -5, current_time())
   and state <> 'SCHEDULED'
   order by completed_time desc;
   
 -- check enterprise table
-select * from "GUIDEWIRE_CDA"."ENTERPRISE"."BC_CHARGEPT_NM_L10N" limit 1000;
+select * from "GUIDEWIRE_CDA"."STAGING"."BC_CHARGEPT_NM_L10N" limit 1000;
 
 -- check the raw table
 select * from "GUIDEWIRE_CDA"."RAW"."BC_CHARGEPT_NM_L10N" limit 1000;

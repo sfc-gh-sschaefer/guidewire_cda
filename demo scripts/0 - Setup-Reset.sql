@@ -47,7 +47,7 @@ DESC INTEGRATION USWEST2_S3_INTEGRATION;
 ---- Stages are created at the table level to improve performance compared to a single stage for all tables
 CREATE OR REPLACE STAGE GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg
     url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/bc_chargept_nm_l10n/' -- REPLACE THIS LOCATION
-    credentials = (AWS_KEY_ID = '<AWS ACCESS KEY ID>' AWS_SECRET_KEY = '<AWS SECRET ACCESS KEY>')
+    credentials = (AWS_KEY_ID = 'AKIAXBUYSSFIGZW2YGYL' AWS_SECRET_KEY = 'vKu7yLJnGkCJnvDGBP7Ih+hfFksSXjfVbjMoyWqL')
     directory = (
       enable = true
       auto_refresh = true
@@ -60,7 +60,7 @@ SELECT * FROM DIRECTORY( @GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg );
 
 CREATE OR REPLACE STAGE GUIDEWIRE_CDA.RAW.gw_bc_taccountpattern_extstg
     url = 's3://sfc-mwies-extstg-uswest2/guidewire_cda/bc_taccountpattern/' -- REPLACE THIS LOCATION
-    credentials = (AWS_KEY_ID = '<AWS ACCESS KEY ID>' AWS_SECRET_KEY = '<AWS SECRET ACCESS KEY>')
+    credentials = (AWS_KEY_ID = 'AKIAXBUYSSFIGZW2YGYL' AWS_SECRET_KEY = 'vKu7yLJnGkCJnvDGBP7Ih+hfFksSXjfVbjMoyWqL')
     directory = (
       enable = true
       auto_refresh = true
@@ -74,8 +74,9 @@ SELECT * FROM DIRECTORY( @GUIDEWIRE_CDA.RAW.gw_bc_taccountpattern_extstg );
 rm @GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg/4fdc0fa344f7452a8a82f05b5c7cab27/1612480304263/;
 rm @GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg/4fdc0fa344f7452a8a82f05b5c7cab28/;
 
--- View the files located in your Guidewire s3 Location
+-- View the files located in your Guidewire s3 Locations. Or Don't. Doesn't matter.
 list @GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg;  
+list @GUIDEWIRE_CDA.RAW.gw_bc_taccountpattern_extstg;  
 
 
 /* ==========       CREATE THE Migrate s3 Table Stored Proc    ========= */

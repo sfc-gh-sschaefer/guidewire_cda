@@ -31,10 +31,11 @@ OVERWRITE = TRUE;
 
 -- Use the migrate table proc to capture the new column
     call guidewire_cda.public.migrate_s3_table('GUIDEWIRE_CDA.RAW.gw_bc_chargept_nm_l10n_extstg', '', 'parquet', 'GUIDEWIRE_CDA','RAW','BC_CHARGEPT_NM_L10N');
--- Note that the "new_colume" is all null for existing rows.
+-- Note that the "new_column" is all null for existing rows.
     SELECT * FROM GUIDEWIRE_CDA.RAW.BC_CHARGEPT_NM_L10N;
 -- Resume the pipe to load the newly staged data with the "new_column"
     ALTER PIPE GUIDEWIRE_CDA.RAW.bc_chargept_nm_l10n SET PIPE_EXECUTION_PAUSED = FALSE;
+    ALTER PIPE GUIDEWIRE_CDA.RAW.bc_chargept_nm_l10n REFRESH;
 -- Monitor the pipe status
     SELECT SYSTEM$PIPE_STATUS( 'GUIDEWIRE_CDA.RAW.bc_chargept_nm_l10n' );
 -- Watch the raw table for the additional rows with a value in the new column

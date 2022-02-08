@@ -1,7 +1,3 @@
-/* ==========       CREATE THE Migrate s3 Table Stored Proc    ========= */
-USE ROLE GUIDEWIRE_ADMIN;
-USE WAREHOUSE GW_CDA_LOAD_WH;
-
 create or replace procedure guidewire_cda.public.migrate_s3_table(source_stage STRING, source_prefix STRING, source_file_format STRING, target_db STRING,target_schema STRING, target_table STRING)
   returns string
   language javascript
@@ -41,7 +37,6 @@ create or replace procedure guidewire_cda.public.migrate_s3_table(source_stage S
                             INFER_SCHEMA( LOCATION=>'@"+stage+"/"+prefix+"' , \
                             FILE_FORMAT=>'GUIDEWIRE_CDA.PUBLIC.FILE_FORMAT_PARQUET_DEFAULT' ))order by 1";
     var cols_in_statement = snowflake.createStatement( {sqlText: cols_in_command} );
-    var cols_in_details = cols_in_statement.execute();
 
 // Make a list of current column names for comparison
     var cols_curr_list ="";
@@ -54,6 +49,7 @@ create or replace procedure guidewire_cda.public.migrate_s3_table(source_stage S
     if(!cols_curr_list){
         var first_field = 1;
         create_table_command = "create table "+fqtn+"("
+        var cols_in_details = cols_in_statement.execute();
         while (cols_in_details.next())  {
            var column_name = cols_in_details.getColumnValue(1);
            var column_type = cols_in_details.getColumnValue(2);
@@ -71,6 +67,7 @@ create or replace procedure guidewire_cda.public.migrate_s3_table(source_stage S
 // If the table does already exist, first check if all existing fields are also in the incoming schema
 //// Make a list of incoming column names for comparison
       var cols_in_list ="";
+      var cols_in_details = cols_in_statement.execute();
       while (cols_in_details.next())  {
          cols_in_list = cols_in_list+cols_in_details.getColumnValue(1)+",";
       }
@@ -80,7 +77,8 @@ create or replace procedure guidewire_cda.public.migrate_s3_table(source_stage S
            return "Existing Column Missing from Incoming Schema: "+cols_curr_array[i]
          }
       }
-// Loop through the incoming column names to check if they already exist and add them if they don't. 
+// Loop through the incoming column names to check if they already exist and add them if they do not. 
+      var cols_in_details = cols_in_statement.execute();
       while (cols_in_details.next())  {
          var column_name = cols_in_details.getColumnValue(1);
          var column_type = cols_in_details.getColumnValue(2);
