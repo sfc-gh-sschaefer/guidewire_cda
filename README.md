@@ -8,6 +8,10 @@
 - **This Demo Repo does not use an actual GW CDA data source**
 - A dummy GW CDA source is created as part of this demo
 
+## Limitations and Next Steps for This Repo (2022-02-10)
+- This code does not leverage the CDA Manifest file to explicitly identify latest files and schemas
+- This code will be expanded to include functionality more similar to the guidewire CDA Client 
+
 ## How to Use This Repo
 
 ***
